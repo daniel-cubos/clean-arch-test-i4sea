@@ -1,35 +1,70 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import TaskCard from "./components/TaskCard";
+import ITaskGateway from "./gateways/TaskGateway/ITaskGateway";
+import { useAppStore } from "./store";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+interface IAppProps {
+  taskGateway: ITaskGateway;
 }
 
-export default App
+function App({ taskGateway }: IAppProps) {
+  const [input, setInput] = useState("");
+  const { tasks, setTasks } = useAppStore();
+
+  async function handleAddTarefa() {
+    const newTask = await taskGateway.add(input);
+
+    setTasks([...tasks, newTask]);
+    setInput("");
+  }
+
+  async function handleToggleStatus(id: number) {
+    const currentTask = tasks.find((t) => t.id === id);
+
+    if (currentTask) {
+      const newStatus = currentTask.status === "done" ? "pending" : "done";
+
+      const updatedTask = await taskGateway.updateTask({
+        ...currentTask,
+        status: newStatus,
+      });
+
+      const localTasks = [...tasks];
+      const index = localTasks.findIndex((t) => t.id === updatedTask.id);
+      localTasks[index] = updatedTask;
+
+      setTasks(localTasks);
+    }
+  }
+
+  useEffect(() => {
+    (async () => {
+      const allTasks = await taskGateway.listTasks();
+
+      setTasks([...allTasks]);
+    })();
+  }, []);
+
+  return (
+    <div>
+      <div>
+        <input
+          type="text"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+        />
+        <button onClick={handleAddTarefa}>Add Tarefa</button>
+      </div>
+      <ul>
+        {tasks.map((t) => (
+          <li key={t.id}>
+            <TaskCard task={t} handleToggleStatus={handleToggleStatus} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default App;
