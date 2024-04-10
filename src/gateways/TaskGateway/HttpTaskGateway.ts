@@ -1,52 +1,42 @@
 import Task from "../../entities/Task";
+import IHttpClient from "../../infra/IHttpClient";
 import ITaskGateway from "./ITaskGateway";
 
 export default class HttpTaskGateway implements ITaskGateway {
-  constructor(readonly apiUrl: string) {}
+  constructor(readonly apiUrl: string, readonly httpClient: IHttpClient) {}
 
   async add(title: string): Promise<Task> {
-    const response = await fetch(`${this.apiUrl}/tasks`, {
-      method: "POST",
-      body: JSON.stringify({
-        title: title,
-        status: "pending",
-      }),
+    const newTask: Task = await this.httpClient.post(`${this.apiUrl}/tasks`, {
+      title: title,
+      status: "pending",
     });
-
-    const newTask: Task = await response.json();
 
     return newTask;
   }
   async getTask(id: number): Promise<Task | null> {
-    const response = await fetch(`${this.apiUrl}/tasks/${id}`);
-
-    const newTask: Task = await response.json();
+    const newTask: Task = await this.httpClient.get(
+      `${this.apiUrl}/tasks/${id}`
+    );
 
     return newTask;
   }
   async listTasks(): Promise<Task[]> {
-    const response = await fetch(`${this.apiUrl}/tasks`);
-
-    const tasks: Task[] = await response.json();
+    const tasks: Task[] = await this.httpClient.get(`${this.apiUrl}/tasks`);
 
     return tasks;
   }
   async updateTask(task: Task): Promise<Task> {
-    const response = await fetch(`${this.apiUrl}/tasks/${task.id}`, {
-      method: "PUT",
-      body: JSON.stringify({
+    const newTask: Task = await this.httpClient.put(
+      `${this.apiUrl}/tasks/${task.id}`,
+      {
         title: task.title,
         status: task.status,
-      }),
-    });
-
-    const newTask: Task = await response.json();
+      }
+    );
 
     return newTask;
   }
   async deleteTask(id: number): Promise<void> {
-    await fetch(`${this.apiUrl}/tasks/${id}`, {
-      method: "DELETE",
-    });
+    await this.httpClient.delete(`${this.apiUrl}/tasks/${id}`);
   }
 }
